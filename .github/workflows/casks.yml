@@ -1,8 +1,8 @@
 name: Casks
 
 # Lint on every cask change, and verify the real download whenever a release is
-# published — that second one is the check that catches a wrong asset filename,
-# a stale sha256, or a mistyped tag before a user meets it as a checksum error.
+# published — that second one catches a wrong asset filename, a stale sha256, or
+# a mistyped tag before a user meets it as a checksum error.
 on:
   push:
     paths: ["Casks/**"]
@@ -18,24 +18,25 @@ jobs:
   lint:
     runs-on: macos-latest
     steps:
-      - name: Check out the tap
-        uses: actions/checkout@v4
-        with:
-          path: homebrew-tap
-
-      - name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-
+      # HOMEBREW FIRST, THEN CHECKOUT INTO ITS TAPS DIRECTORY.
+      #
       # Homebrew refuses to load a cask that is not inside a tap (it hardcodes
-      # `<tap>/Casks` and matches `^Casks/….rb$`), so the checkout is linked
-      # into the taps directory under its real tap name rather than linted in
-      # place.
-      - name: Install as a tap
-        run: |
-          TAP_OWNER_DIR="$(brew --repository)/Library/Taps/uxlabpro"
-          mkdir -p "$TAP_OWNER_DIR"
-          ln -sfn "$GITHUB_WORKSPACE/homebrew-tap" "$TAP_OWNER_DIR/homebrew-tap"
-          brew tap-info uxlabpro/tap
+      # `<tap>/Casks` and matches `^Casks/….rb$`). The first attempt checked out
+      # normally and symlinked the result into place, which failed: Homebrew
+      # does not accept a symlinked tap. Checking out directly into
+      # `…/Library/Taps/<owner>/homebrew-<name>` is the supported pattern, and
+      # `repository-path` is the output the action publishes for exactly this.
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@a657b8b0cd35d0f65cce41fce9b24cf054b49869
+
+      - name: Check out the tap into Homebrew
+        uses: actions/checkout@v5
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.repository-path }}/Library/Taps/uxlabpro/homebrew-tap
+
+      - name: Confirm Homebrew sees the tap
+        run: brew tap-info uxlabpro/tap
 
       # Homebrew 6 rejects third-party taps with a hard error until trusted;
       # CI hits the same wall a user does.
@@ -43,7 +44,7 @@ jobs:
         run: brew trust uxlabpro/tap
 
       - name: brew style
-        run: brew style --cask uxlabpro/tap
+        run: brew style --cask uxlabpro/tap/place
 
       - name: brew audit (offline)
         run: brew audit --cask uxlabpro/tap/place
