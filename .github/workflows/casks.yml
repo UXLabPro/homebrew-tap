@@ -1,0 +1,59 @@
+name: Casks
+
+# Lint on every cask change, and verify the real download whenever a release is
+# published — that second one is the check that catches a wrong asset filename,
+# a stale sha256, or a mistyped tag before a user meets it as a checksum error.
+on:
+  push:
+    paths: ["Casks/**"]
+  pull_request:
+    paths: ["Casks/**"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Casks are macOS-only, so `brew audit --cask` needs a macOS runner. Free for
+# public repos.
+jobs:
+  lint:
+    runs-on: macos-latest
+    steps:
+      - name: Check out the tap
+        uses: actions/checkout@v4
+        with:
+          path: homebrew-tap
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      # Homebrew refuses to load a cask that is not inside a tap (it hardcodes
+      # `<tap>/Casks` and matches `^Casks/….rb$`), so the checkout is linked
+      # into the taps directory under its real tap name rather than linted in
+      # place.
+      - name: Install as a tap
+        run: |
+          TAP_OWNER_DIR="$(brew --repository)/Library/Taps/uxlabpro"
+          mkdir -p "$TAP_OWNER_DIR"
+          ln -sfn "$GITHUB_WORKSPACE/homebrew-tap" "$TAP_OWNER_DIR/homebrew-tap"
+          brew tap-info uxlabpro/tap
+
+      # Homebrew 6 rejects third-party taps with a hard error until trusted;
+      # CI hits the same wall a user does.
+      - name: Trust the tap
+        run: brew trust uxlabpro/tap
+
+      - name: brew style
+        run: brew style --cask uxlabpro/tap
+
+      - name: brew audit (offline)
+        run: brew audit --cask uxlabpro/tap/place
+
+      # Downloads the ~97 MB DMG and checks it against the cask's sha256. Only
+      # on a published release or a manual run, so ordinary edits stay fast.
+      - name: brew audit (online, verifies the real asset)
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        run: brew audit --cask --online uxlabpro/tap/place
+
+      - name: brew livecheck (cask version vs the update feed)
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        run: brew livecheck --cask uxlabpro/tap/place
