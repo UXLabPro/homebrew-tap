@@ -18,43 +18,41 @@ jobs:
   lint:
     runs-on: macos-latest
     steps:
-      # HOMEBREW FIRST, THEN CHECKOUT INTO ITS TAPS DIRECTORY.
+      # NO `actions/checkout` HERE, DELIBERATELY.
       #
-      # Homebrew refuses to load a cask that is not inside a tap (it hardcodes
-      # `<tap>/Casks` and matches `^Casks/….rb$`). The first attempt checked out
-      # normally and symlinked the result into place, which failed: Homebrew
-      # does not accept a symlinked tap. Checking out directly into
-      # `…/Library/Taps/<owner>/homebrew-<name>` is the supported pattern, and
-      # `repository-path` is the output the action publishes for exactly this.
-      - name: Set up Homebrew
+      # When the repo is a Homebrew tap, setup-homebrew checks it out ITSELF:
+      # it derives the tap path from the repo name, `git init`s it, symlinks it
+      # to GITHUB_WORKSPACE, fetches GITHUB_SHA and runs `git checkout --force`
+      # (see setup-homebrew/main.sh). Adding actions/checkout is not merely
+      # redundant, it is destructive in one direction and impossible in the
+      # other: the action does `rm -rf "$GITHUB_WORKSPACE"/*`, so a checkout
+      # BEFORE it is deleted, and checkout refuses an absolute path outside the
+      # workspace, so it cannot write into the tap directory afterwards. Both
+      # were tried; both failed. Let the action do it.
+      - name: Set up Homebrew and check out the tap
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@a657b8b0cd35d0f65cce41fce9b24cf054b49869
 
-      - name: Check out the tap into Homebrew
-        uses: actions/checkout@v5
-        with:
-          path: ${{ steps.set-up-homebrew.outputs.repository-path }}/Library/Taps/uxlabpro/homebrew-tap
-
       - name: Confirm Homebrew sees the tap
-        run: brew tap-info uxlabpro/tap
+        run: brew tap-info "${{ steps.set-up-homebrew.outputs.tap-name }}"
 
       # Homebrew 6 rejects third-party taps with a hard error until trusted;
       # CI hits the same wall a user does.
       - name: Trust the tap
-        run: brew trust uxlabpro/tap
+        run: brew trust "${{ steps.set-up-homebrew.outputs.tap-name }}"
 
       - name: brew style
-        run: brew style --cask uxlabpro/tap/place
+        run: brew style --cask "${{ steps.set-up-homebrew.outputs.tap-name }}/place"
 
       - name: brew audit (offline)
-        run: brew audit --cask uxlabpro/tap/place
+        run: brew audit --cask "${{ steps.set-up-homebrew.outputs.tap-name }}/place"
 
       # Downloads the ~97 MB DMG and checks it against the cask's sha256. Only
       # on a published release or a manual run, so ordinary edits stay fast.
       - name: brew audit (online, verifies the real asset)
         if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
-        run: brew audit --cask --online uxlabpro/tap/place
+        run: brew audit --cask --online "${{ steps.set-up-homebrew.outputs.tap-name }}/place"
 
       - name: brew livecheck (cask version vs the update feed)
         if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
-        run: brew livecheck --cask uxlabpro/tap/place
+        run: brew livecheck --cask "${{ steps.set-up-homebrew.outputs.tap-name }}/place"
