@@ -5,9 +5,7 @@ Homebrew casks for [UXLab](https://uxlabs.app) Mac apps.
 ## Install
 
 ```sh
-brew tap uxlabpro/tap
-brew trust uxlabpro/tap
-brew install --cask place
+brew tap uxlabpro/tap && brew trust uxlabpro/tap && brew install --cask place
 ```
 
 Homebrew 6 asks you to trust a third-party tap before it will load casks from
