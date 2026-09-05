@@ -19,10 +19,12 @@ cask "place" do
   # Tags are APP-PREFIXED (`place-v…`) so Spatialize can share this repo's
   # releases later without the two colliding.
   #
-  # `verified:` is required because this host differs from `homepage`; it names
-  # the prefix Homebrew should trust as belonging to the same project.
-  url "https://github.com/UXLabPro/homebrew-tap/releases/download/place-v#{version.csv.first}-#{version.csv.second}/Place-#{version.csv.first}-#{version.csv.second}.dmg",
-      verified: "github.com/UXLabPro/homebrew-tap/"
+  # `verified:` used to live here, naming the prefix Homebrew should trust when
+  # the download host differs from `homepage`. Homebrew has since DEPRECATED the
+  # parameter (Cask::Audit#audit_unnecessary_verified) and dropped the
+  # url-vs-homepage check it existed to satisfy, so it is now pure lint failure
+  # with nothing behind it. Do not add it back.
+  url "https://github.com/UXLabPro/homebrew-tap/releases/download/place-v#{version.csv.first}-#{version.csv.second}/Place-#{version.csv.first}-#{version.csv.second}.dmg"
   name "Place"
   desc "Menu bar window manager for snapping windows into screen zones"
   homepage "https://uxlabs.app/place/"
