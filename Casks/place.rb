@@ -2,8 +2,8 @@ cask "place" do
   # "<marketing>,<build>" — Homebrew's two-part form. `version.csv.first` is
   # 1.0 and `version.csv.second` is the build, which is what actually moves
   # between releases here (marketing has stayed 1.0 since R1).
-  version "1.0,7"
-  sha256 "8830f3c7d6a6ae97bd6a102cb6214ec78f682aa7b02d6e8ac8f139d216f70e7f"
+  version "1.0,8"
+  sha256 "0f41fbd3386242d221ebfc0b36acfc42017a2b1420ce126202d8e24461c4138d"
 
   # GITHUB RELEASES on the TAP REPO ITSELF (2026-08-26). One public repo holds
   # both the casks and the DMG assets: `brew tap` clones only the git tree, and
@@ -39,7 +39,6 @@ cask "place" do
   end
 
   auto_updates true
-
   depends_on macos: :tahoe
 
   app "Place.app"

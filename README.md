@@ -16,7 +16,7 @@ it. `brew trust` records that choice on your Mac only; undo it any time with
 
 | Cask    | App                                                | Requires        |
 | ------- | -------------------------------------------------- | --------------- |
-| `place` | [Place](https://uxlabs.app/place/) — menu bar window manager | macOS 26.5 or later |
+| `place` | [Place](https://uxlabs.app/place/) — menu bar window manager | macOS 26.0 or later |
 
 Place needs Accessibility permission so it can move other apps' windows. It asks
 on first launch, or grant it in System Settings ▸ Privacy & Security ▸
